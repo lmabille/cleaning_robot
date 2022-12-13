@@ -58,6 +58,12 @@ class CleaningRobot:
         self.battery_led_on = False
         self.cleaning_system_on = False
 
+        self.compass_r = {'N': 0, 'E': 1, 'S':2,'W': 3}
+        self.compass_r_reverse = {0: 'N', 1: 'E', 2: 'S', 3: 'W'}
+
+        self.compass_l = {'N': 0, 'W': 1, 'S': 2, 'E': 3}
+        self.compass_l_reverse = {0: 'N', 1: 'W', 2: 'S', 3: 'E'}
+
     def initialize_robot(self) -> None:
         """
         Initializes the robot in the starting position (0,0,N)
@@ -74,6 +80,31 @@ class CleaningRobot:
         return self.pos_x + self.pos_y + self.facing
 
     def execute_command(self, command: str) -> str:
+
+        if command == 'f':
+            self.activate_wheel_motor()
+            if self.facing == 'N' and (self.pos_y != '2'):
+                self.pos_y += 1
+            if self.facing == 'E' and self.pos_x != '2':
+                self.pos_x += 1
+            if self.facing == 'S' and self.pos_y != '0':
+                self.pos_y -= 1
+            if self.facing == 'W' and self.pos_x != '0':
+                self.pos_x -= 1
+
+
+
+        elif command == 'r':
+            self.activate_rotation_motor('r')
+            direction = (self.compass_r[self.facing] + 1) % 4
+            self.facing = self.compass_r_reverse[direction]
+
+
+        elif command == 'l':
+            self.activate_rotation_motor('l')
+            direction = (self.compass_l[self.facing] + 1) % 4
+            self.facing = self.compass_l_reverse[direction]
+
         """
         It makes the robot move inside the room according to a command string received by the RMS.
         The return string contains the new position of the robot, its direction, and the obstacles it has
