@@ -98,6 +98,15 @@ class CleaningRobot:
         :return: True if the infrared sensor detects something, False otherwise.
         """
 
+    def turn_light_on(self) -> None:
+        GPIO.output(self.RECHARGE_LED_PIN, True)
+        self.battery_led_on = True
+
+    def turn_cleaning_system_on(self) -> None:
+        GPIO.output(self.CLEANING_SYSTEM_PIN, True)
+        self.cleaning_system_on = True
+
+
     def manage_battery(self) -> None:
         """
         It  checks how much battery is left by querying the IBS.
@@ -105,7 +114,11 @@ class CleaningRobot:
         the robot turns on the recharging led and shuts off the cleaning system.
         Otherwise, the robot turns on the cleaning system and turns off the recharge LED.
         """
-        pass
+        percentage = GPIO.input(self.BATTERY_PIN)
+        if percentage < 10:
+            self.turn_light_on()
+        else:
+            self.turn_cleaning_system_on()
 
     def activate_wheel_motor(self) -> None:
         """
