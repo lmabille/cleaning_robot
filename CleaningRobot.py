@@ -83,40 +83,44 @@ class CleaningRobot:
         self.status = ''.join(filter(None, [self.status, self.obstacle]))
 
     def execute_command(self, command: str) -> str:
-        x = int(self.pos_x)
-        y = int(self.pos_y)
-        facing = self.facing
 
-        if command == CleaningRobot.FORWARD:
-            if self.facing == CleaningRobot.N and (self.pos_y != self.room_y):
-                y += 1
-            elif self.facing == CleaningRobot.E and self.pos_x != self.room_x:
-                x += 1
-            elif self.facing == CleaningRobot.S and self.pos_y != '0':
-                y -= 1
-            elif self.facing == CleaningRobot.W and self.pos_x != '0':
-                x -= 1
-            else:
-                raise CleaningRobotError
+        self.manage_battery()
 
-        elif command == CleaningRobot.RIGHT:
-            self.activate_rotation_motor('r')
-            facing = self.compass_r[self.facing]
+        if self.cleaning_system_on:
+            x = int(self.pos_x)
+            y = int(self.pos_y)
+            facing = self.facing
 
-        elif command == CleaningRobot.LEFT:
-            self.activate_rotation_motor('l')
-            facing = self.compass_l[self.facing]
-
-        if self.obstacle_found():
-            self.obstacle = '(' + str(x) + ',' + str(y) + ')'
-        else:
-            self.pos_x, self.pos_y, self.facing = str(x), str(y), facing
             if command == CleaningRobot.FORWARD:
-                self.activate_wheel_motor()
-            elif command == (CleaningRobot.LEFT or CleaningRobot.RIGHT):
-                self.activate_rotation_motor(command)
+                if self.facing == CleaningRobot.N and (self.pos_y != self.room_y):
+                    y += 1
+                elif self.facing == CleaningRobot.E and self.pos_x != self.room_x:
+                    x += 1
+                elif self.facing == CleaningRobot.S and self.pos_y != '0':
+                    y -= 1
+                elif self.facing == CleaningRobot.W and self.pos_x != '0':
+                    x -= 1
+                else:
+                    raise CleaningRobotError
 
-        self.update_status()
+            elif command == CleaningRobot.RIGHT:
+                self.activate_rotation_motor('r')
+                facing = self.compass_r[self.facing]
+
+            elif command == CleaningRobot.LEFT:
+                self.activate_rotation_motor('l')
+                facing = self.compass_l[self.facing]
+
+            if self.obstacle_found():
+                self.obstacle = '(' + str(x) + ',' + str(y) + ')'
+            else:
+                self.pos_x, self.pos_y, self.facing = str(x), str(y), facing
+                if command == CleaningRobot.FORWARD:
+                    self.activate_wheel_motor()
+                elif command == (CleaningRobot.LEFT or CleaningRobot.RIGHT):
+                    self.activate_rotation_motor(command)
+
+            self.update_status()
 
 
 
@@ -165,7 +169,11 @@ class CleaningRobot:
         """
         percentage = GPIO.input(self.BATTERY_PIN)
         if percentage < 10:
+            GPIO.output(self.CLEANING_SYSTEM_PIN, GPIO.LOW)
+            self.cleaning_system_on = False
             self.turn_light_on()
+            self.update_status()
+
         else:
             self.turn_cleaning_system_on()
 
