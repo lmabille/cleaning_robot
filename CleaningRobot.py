@@ -54,15 +54,13 @@ class CleaningRobot:
         self.pos_x = None
         self.pos_y = None
         self.facing = None
+        self.status = None
 
         self.battery_led_on = False
         self.cleaning_system_on = False
 
-        self.compass_r = {'N': 0, 'E': 1, 'S':2,'W': 3}
-        self.compass_r_reverse = {0: 'N', 1: 'E', 2: 'S', 3: 'W'}
-
-        self.compass_l = {'N': 0, 'W': 1, 'S': 2, 'E': 3}
-        self.compass_l_reverse = {0: 'N', 1: 'W', 2: 'S', 3: 'E'}
+        self.compass_r = {'N': 'E', 'E': 'S', 'S': 'W', 'W': 'N'}
+        self.compass_l = {'N': 'W', 'W': 'S', 'S': 'E', 'E': 'N'}
 
     def initialize_robot(self) -> None:
         """
@@ -70,40 +68,57 @@ class CleaningRobot:
         """
         self.pos_x = '0'
         self.pos_y = '0'
-        self.facing = 'N'
+        self.facing = self.N
+        self.update_status()
 
     def robot_status(self) -> str:
         """
         Returns the current status of the robot, as well as any obstacle encountered
         :return: the status of the robot as a string
         """
-        return self.pos_x + self.pos_y + self.facing
+        return self.status
+
+    def update_status(self) -> None:
+        self.status = '('+self.pos_x + ',' + self.pos_y + ',' + self.facing + ')'
+        self.status = ''.join(filter(None, [self.status, self.obstacle]))
 
     def execute_command(self, command: str) -> str:
+        x = int(self.pos_x)
+        y = int(self.pos_y)
+        facing = self.facing
 
-        if command == 'f':
-            self.activate_wheel_motor()
-            if self.facing == 'N' and (self.pos_y != '2'):
-                self.pos_y += 1
-            if self.facing == 'E' and self.pos_x != '2':
-                self.pos_x += 1
-            if self.facing == 'S' and self.pos_y != '0':
-                self.pos_y -= 1
-            if self.facing == 'W' and self.pos_x != '0':
-                self.pos_x -= 1
+        if command == CleaningRobot.FORWARD:
+            if self.facing == CleaningRobot.N and (self.pos_y != self.room_y):
+                y += 1
+            elif self.facing == CleaningRobot.E and self.pos_x != self.room_x:
+                x += 1
+            elif self.facing == CleaningRobot.S and self.pos_y != '0':
+                y -= 1
+            elif self.facing == CleaningRobot.W and self.pos_x != '0':
+                x -= 1
+            else:
+                raise CleaningRobotError
 
-
-
-        elif command == 'r':
+        elif command == CleaningRobot.RIGHT:
             self.activate_rotation_motor('r')
-            direction = (self.compass_r[self.facing] + 1) % 4
-            self.facing = self.compass_r_reverse[direction]
+            facing = self.compass_r[self.facing]
 
-
-        elif command == 'l':
+        elif command == CleaningRobot.LEFT:
             self.activate_rotation_motor('l')
-            direction = (self.compass_l[self.facing] + 1) % 4
-            self.facing = self.compass_l_reverse[direction]
+            facing = self.compass_l[self.facing]
+
+        if self.obstacle_found():
+            self.obstacle = '(' + str(x) + ',' + str(y) + ')'
+        else:
+            self.pos_x, self.pos_y, self.facing = str(x), str(y), facing
+            if command == CleaningRobot.FORWARD:
+                self.activate_wheel_motor()
+            elif command == (CleaningRobot.LEFT or CleaningRobot.RIGHT):
+                self.activate_rotation_motor(command)
+
+        self.update_status()
+
+
 
         """
         It makes the robot move inside the room according to a command string received by the RMS.
@@ -128,13 +143,16 @@ class CleaningRobot:
         Checks whether the infrared distance sensor has detected an obstacle in front of it.
         :return: True if the infrared sensor detects something, False otherwise.
         """
+        if GPIO.input(self.INFRARED_PIN) > 0:
+            self.obstacle = True
+            return True
 
     def turn_light_on(self) -> None:
-        GPIO.output(self.RECHARGE_LED_PIN, True)
+        GPIO.output(self.RECHARGE_LED_PIN, GPIO.HIGH)
         self.battery_led_on = True
 
     def turn_cleaning_system_on(self) -> None:
-        GPIO.output(self.CLEANING_SYSTEM_PIN, True)
+        GPIO.output(self.CLEANING_SYSTEM_PIN, GPIO.HIGH)
         self.cleaning_system_on = True
 
 

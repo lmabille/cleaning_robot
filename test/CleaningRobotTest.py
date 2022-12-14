@@ -21,7 +21,7 @@ class CleaningRobotTest(unittest.TestCase):
     def test_robot_status(self):
         self.rb.initialize_robot()
         coordinates = self.rb.robot_status()
-        self.assertEqual(coordinates, '00N')
+        self.assertEqual(coordinates, '(0,0,N)')
 
     @patch.object(GPIO, 'input')
     def test_manage_battery_1(self, mock_input):
@@ -37,26 +37,55 @@ class CleaningRobotTest(unittest.TestCase):
         self.assertTrue(self.rb.cleaning_system_on)
         self.assertFalse(self.rb.battery_led_on)
 
-    def test_execute_command_1(self):
+    @patch.object(GPIO, 'input')
+    def test_execute_command_no_obstacle_1(self, mock_input):
+        mock_input.return_value = 0
         self.rb.initialize_robot()
         self.rb.execute_command('l')
         status = self.rb.robot_status()
-        self.assertEqual(status, '00W')
-    def test_execute_command_2(self):
+        self.assertEqual('(0,0,W)', status )
+
+    @patch.object(GPIO, 'input')
+    def test_execute_command_no_obstacle_2(self, mock_input):
+        mock_input.return_value = 0
         self.rb.initialize_robot()
         self.rb.execute_command('r')
         status = self.rb.robot_status()
-        self.assertEqual(status, '00E')
+        self.assertEqual('(0,0,E)', status )
 
-
-    def test_execute_command_3(self):
-        self.rb.initialize_robot()
+    @patch.object(GPIO, 'input')
+    def test_execute_command_no_obstacle_3(self, mock_input):
+        mock_input.return_value = 0
         self.rb.pos_x = '1'
         self.rb.pos_y = '1'
         self.rb.facing = 'E'
         self.rb.execute_command('r')
         status = self.rb.robot_status()
-        self.assertEqual(status, '11S')
+        self.assertEqual('(1,1,S)', status )
+
+    @patch.object(GPIO, 'input')
+    def test_execute_command_no_obstacle_4(self, mock_input):
+        mock_input.return_value = 0
+        self.rb.pos_x = '1'
+        self.rb.pos_y = '1'
+        self.rb.facing = 'E'
+        self.rb.update_status()
+        self.rb.execute_command('r')
+        status = self.rb.robot_status()
+        self.assertEqual('(1,1,S)', status )
+
+    @patch.object(GPIO, 'input')
+    def test_execute_command_with_obstacle_1(self, mock_input):
+        mock_input.return_value = 3
+        self.rb.pos_x = '1'
+        self.rb.pos_y = '1'
+        self.rb.facing = 'E'
+        self.rb.update_status()
+        self.rb.execute_command('f')
+        status = self.rb.robot_status()
+        self.assertEqual('(1,1,E)(2,1)', status)
+
+
 
 
 
